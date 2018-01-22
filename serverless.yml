@@ -1,0 +1,103 @@
+service:
+  name: timestamps
+
+# Add the serverless-webpack plugin
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: production
+  region: eu-central-1
+  memorySize: 128
+  timeout: 4
+  logRetentionInDays: 14
+  versionFunctions: false
+  deploymentBucket:
+    name: it.lightningspir.${self:provider.stage}.deploys
+    serverSideEncryption: AES256
+
+#package:
+#  exclude:
+#    - .git/**
+#    - .gitignore
+
+functions:
+  current:
+    handler: handler.currentTime
+    name: ${self:provider.stage}-current
+    description: Generates ObjectID from Date
+    tags:
+      environment: ${self:provider.stage}
+      runtime: ${self:provider.runtime}
+      region: ${self:provider.region}
+      versioned: ${self:provider.versionFunctions}
+      group: timestamp
+    events:
+      - http:
+          method: get
+          path: current/
+          cors: true
+          response:
+            headers:
+              Cache-Control: "'max-age=0'"
+  datetoid:
+    handler: handler.objectIDFromDate
+    name: ${self:provider.stage}-datetoid
+    description: Generates ObjectID from Date
+    tags:
+      environment: ${self:provider.stage}
+      runtime: ${self:provider.runtime}
+      region: ${self:provider.region}
+      versioned: ${self:provider.versionFunctions}
+      group: objectid
+    events:
+      - http:
+          method: get
+          path: datetoid/{date}
+          cors: true
+          request:
+            parameters:
+              paths:
+                date: true
+          response:
+            headers:
+              Content-Type: "'text/plain'"
+              Cache-Control: "'max-age=31536000'"
+
+  oidtodate:
+    handler: handler.dateFromObjectID
+    name: ${self:provider.stage}-oidtodate
+    description: Generate Date from ObjectID
+    tags:
+      environment: ${self:provider.stage}
+      runtime: ${self:provider.runtime}
+      region: ${self:provider.region}
+      versioned: ${self:provider.versionFunctions}
+      group: objectid
+    events:
+      - http:
+          method: get
+          path: oidtodate/{oid}
+          cors: true
+          request:
+            parameters:
+              paths:
+                oid: true
+          response:
+            headers:
+              Content-Type: "'text/plain'"
+              Cache-Control: "'max-age=31536000'"
+resources:
+#  Resources:
+#    ApiGatewayDeployment:
+#      Type: AWS::ApiGateway::Deployment
+#      Properties:
+#        RestApiId:
+#          Ref: ApiGatewayRestApi
+#        StageName: ${self:provider.stage}
+#        StageDescription:
+#          ThrottlingBurstLimit: 10
+#          ThrottlingRateLimit: 1
